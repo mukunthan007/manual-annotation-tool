@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <style>
+      button {
+      margin-right: 10px;
+      margin-bottom: 5px;
+      border-radius: 6px;
+      border-width: medium;
+            }
+      .wrapper {
+      text-align: center;
+  }
+      .wrapper_delete{
+       text-align: right
+        }
+            /*.label_display {
+    text-align: center;
+    font-family: Futura, 'Trebuchet MS', Arial, sans-serif;
+    font-size: 12px;
+    font-style: italic;
+    font-variant: normal;
+    font-weight: bold;
+    margin: 0 auto;
+    display: block;
+    width: 500px;
+      }*/
+  
+      </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Caret Position</title>
+      </head>
+      <body>
+        <div anvil-slot="default_home">
+      </div>
+        <p style= "font-size: 18px;transform: translate(45%, 150%);"><b>List of labels present</b></p><br>
+          <br>
+        <div id="button-container"></div><br>
+        <body>
+          <div class="wrapper_delete">
+        <button class = "button" type = "button" id = "delete_button" style=" border: none; padding: 12px 32px; border-radius: 50px; color: white; background-color: #6A43BF">Delete</button><br>
+          </div>
+        <p style= "font-size: 18px;transform: translate(0%, 0%);"><b>Text</b></p>
+        <br><div class="editor" contenteditable="true" id = "text_anvil" transform= "translateY(500%)" onkeydown="if(event.metaKey) return true; return false;"oncut="return false"onpaste="return false" style="border: solid; border-radius: 10px;font-size: 18px; border-width: 3px"></div><br>
+            <div class = "label_display" contenteditable="true" id="label" style = "width: 600px ;border: solid; border-radius: 10px;font-size: 18px; border-width: 3px"></div><br>
+          
+        </body>
+
+<script>
+    try{
+      var editor = null;
+      var output = null;
+      var dictionay_data={};
+      var list_data = [];
+      var list_annotation=[];
+      var substring_for_regex;
+      var substring_for_color_word;
+       var gloabl_text;
+      //var glob_label_box = [];
+      const getTextSelection = function (editor) {
+          const selection = window.getSelection();
+  
+          if (selection != null && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+      
+              return {
+                  start: getTextLength(editor, range.startContainer, range.startOffset),
+                  end: getTextLength(editor, range.endContainer, range.endOffset)
+              };
+          } else
+              return null;
+      }
+      
+      const getTextLength = function (parent, node, offset) {
+          var textLength = 0;
+      
+          if (node.nodeName == '#text')
+              textLength += offset;
+          else for (var i = 0; i < offset; i++)
+              textLength += getNodeTextLength(node.childNodes[i]);
+      
+          if (node != parent)
+              textLength += getTextLength(parent, node.parentNode, getNodeOffset(node));
+      
+          return textLength;
+      }
+      
+      const getNodeTextLength = function (node) {
+          var textLength = 0;
+      
+          if (node.nodeName == 'BR')
+              textLength = 1;
+          else if (node.nodeName == '#text')
+              textLength = node.nodeValue.length;
+          else if (node.childNodes != null)
+              for (var i = 0; i < node.childNodes.length; i++)
+                  textLength += getNodeTextLength(node.childNodes[i]);
+      
+          return textLength;
+      }
+      
+      const getNodeOffset = function (node) {
+          return node == null ? -1 : 1 + getNodeOffset(node.previousSibling);
+      }
+      
+      function inital_fun() {
+          editor = document.querySelector('.editor');
+          output = document.querySelector('#output');
+      
+          document.addEventListener('selectionchange', handleSelectionChange);
+      }
+      
+      const handleSelectionChange = function () {
+          if (isEditor(document.activeElement)) {
+              const textSelection = getTextSelection(document.activeElement);
+              if (textSelection != null) {
+                  const text = document.activeElement.innerText;
+                  const selection = text.slice(textSelection.start, textSelection.end);
+                    list_data = [{"start":textSelection.start,"end":textSelection.end,"text":selection}]
+                  //print(`Selection: [${selection}] (Start: ${textSelection.start}, End: ${textSelection.end})`);
+              } else
+                  //print('Selection is null!');
+                    console.log("Selection is null!")
+          } else
+                console.log("Select some text above")
+              //print('Select some text above');
+      }
+      
+      const isEditor = function (element) {
+          return element != null && element.classList.contains('editor');
+      }
+      
+      /*const print = function (message) {
+          if (output != null)
+            output.innerText = message;
+          else
+            console.log('output is null!');
+      }*/
+      //For making the annotation format
+      
+      function for_dict(obj){
+        console.log("tes")
+        try{
+        for (var annotate = 0; annotate < list_annotation.length; annotate++) {
+          console.log(list_annotation[annotate]["label"][0])
+          if (list_data[0]["text"] == list_annotation[annotate]["points"][0]["text"]&&list_data[0]["text"]!=""){
+              //console.log("label",list_of_labels[label])
+              list_annotation[annotate]["label"][0] = obj
+              console.log("test")
+              var Flag = 0;
+          }}
+          if (Flag != 0){
+          var temp_list = {"label":[obj],"points":list_data}
+          console.log(temp_list)
+          list_annotation.push(temp_list);
+          console.log(list_annotation)    
+          }}catch{
+        console.error()
+        alert('please select the text')
+      }
+      }
+      //For making the final format of bert and store the data on the dataset json
+      function final_form(text,patient_id){
+        text = text.replace(/<\/?span[^>]*>/g,"");
+        var format = {"content":text,"annotation":list_annotation};
+        console.log(format,patient_id)
+        var send_data = {"annotation_data":format,"patient_ID":patient_id};
+        /*$.ajax({
+    url: 'https://localhost:5000/root',
+    data: {annotated_text:JSON.stringify(format),patient_ID:JSON.stringify(patient_id)},
+    type: 'POST',
+    traditional: true,
+    success: function(response){
+      console.log(response);
+    },
+    error: function(error){
+      console.log(error);
+    }
+  });*/
+        /*$.post("http://127.0.0.1:5000/root", {
+          annotated_text : JSON.stringify(send_data)
+      });*/
+      //fucntion for genrating random color
+      }
+        
+      function getColor() {
+        var color_code = "#" + Math.random().toString(16).slice(2, 8)
+        return (
+          color_code
+        );
+      }
+  
+      function selectionIsBold() {
+      var isBold = false;
+      if (document.queryCommandState) {
+          isBold = document.queryCommandState("bold");
+      }
+      return isBold;
+      console.log("log",isBold)
+      }
+  
+      function elditable_text(text_color){
+        // Get Selection
+        try{
+        sel = window.getSelection();
+        var temp_win = window.getSelection();
+        if (sel.rangeCount && sel.getRangeAt) {
+          range = sel.getRangeAt(0);
+        }
+        // Set design mode to on
+        document.designMode = "on";
+        try {
+          if (range) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } 
+        } catch (error) {
+         console.error("range",error)
+         alert("eror ocuured")
+          
+        }
+        
+        // Colorize text
+        if(selectionIsBold()){
+        }else{
+          document.execCommand("bold");
+        }
+        document.execCommand("ForeColor", false, text_color);
+        // Set design mode to off
+        document.designMode = "off";
+      }catch(err){
+        alert("error occured")
+        console.error(err)
+      }}
+  
+      function delete_label(list_of_labels){
+        elditable_text("#000000")
+        try{
+
+        for (var annotate = 0; annotate < list_annotation.length; annotate++) {
+          console.log(list_annotation[annotate]["label"][0])
+          if (list_data[0]["text"] == list_annotation[annotate]["points"][0]["text"]){
+              //console.log("label",list_of_labels[label])
+              console.log("test")
+              //delete list_annotation[annotate];
+              list_annotation.splice(annotate,1)
+              console.log(list_annotation)
+              display_label()
+              document.execCommand("bold");   
+              { break; }
+          }
+        }
+        /*var selection_dict = list_data[0];
+        var slection_text = selection_dict["text"];*/
+      }catch{
+        console.error()
+        alert("please select text")
+      }
+      }
+      function colorWord(text, word,text_color_code) {
+      substring_for_color_word = text
+      if (substring_for_color_word.includes(word)) {
+          console.log("hoow")
+          const index = substring_for_color_word.indexOf(word);
+          if (index != -1) {
+              const endIndex = index + word.length - 1;
+              var sample_string = "";
+              for (var letter = 0; letter < word.length; letter++){
+                  sample_string = sample_string.concat("#")
+              }
+              substring_for_color_word = substring_for_color_word.replace(word.substring(index,endIndex),sample_string)
+              console.log("testing")
+              var text = text.replace(new RegExp(" "+word+" "), " "+'<span style="color: ' + text_color_code + '">' + word.bold() + '</span>'+" ");
+              console.log("ffs",text)
+              return (text);
+          }
+          
+      }else{
+        return (text);
+      }
+      }
+  
+      function word_postion(text,word,obj){
+          text_remove = text.replace(/<\/?span[^>]*>/g,"");
+          console.log("testing word",word,obj)
+          const index = substring_for_regex.indexOf(word);
+          console.log("test2")
+          if (index != -1) {
+              const endIndex = index + word.length - 1;
+              var sample_string = "";
+              for (var letter = 0; letter < word.length; letter++){
+                  sample_string = sample_string.concat("#")
+              }
+              substring_for_regex = substring_for_regex.replace(word,sample_string)
+              console.log("hellO there",substring_for_regex)
+              var temp = {"label":[obj],"points":[{"start":index,"end":endIndex,"text":word}]}
+              list_annotation.push(temp);
+              console.log("temp",temp)
+              console.log("final",list_annotation)
+          }
+      }
+  
+      function display_label(){
+          var glob_label_box = [];
+          for (var label_textbox = 0; label_textbox < list_annotation.length; label_textbox++) {
+              let temp_label = list_annotation[label_textbox]["label"][0];
+              let temp_text = list_annotation[label_textbox]["points"][0]["text"];
+              let temp_comp = temp_label.concat(" : ", temp_text);
+              glob_label_box.push(temp_comp);
+          }
+          var label_box = document.getElementById('label');
+              label_box.innerText = glob_label_box.join("\n");
+      }
+  
+      function selectionIsBold() {
+      var isBold = false;
+      if (document.queryCommandState) {
+          isBold = document.queryCommandState("bold");
+      }
+      return isBold;
+  }
+  
+      function getRandomColor() {
+      var letters = '0123456789ABCDEF'.split('');
+      var color = '#';
+      for (var i = 0; i < 6; i++ ) {
+          color += letters[Math.round(Math.random() * 15)];
+      }
+      return color;
+      }
+        function manual_for_anvil(){
+          gloabl_text = gloabl_text.replace(/<\/?span[^>]*>/g,"");
+            var format = {"content":gloabl_text,"annotation":list_annotation};
+            console.log("text",gloabl_text,list_annotation)
+            return format;
+      }
+  
+      function get_text(text,ner_text,list_of_labels,patient_id){
+        try{
+        inital_fun()
+        //print(list_of_labels)
+        //text_anvil.innerText = text;
+        substring_for_regex = text;
+        gloabl_text = text;
+        for(let label = 0; label< list_of_labels.length; label++){
+          var obj = list_of_labels[label];
+          let newBtn = document.createElement('button');
+          //newBtn.style.color = "white";
+          //newBtn.style.background = getColor();
+          newBtn.style.borderColor = getRandomColor();
+          newBtn.innerText=obj;
+          //newBtn.onclick = "for_dict(list_of_labels[label]) ; elditable_text(newBtn.style.background)";
+          //newBtn.onclick = function() {elditable_text(newBtn.style.background)};
+          try{
+          newBtn.addEventListener("click", function() {for_dict(list_of_labels[label])} );
+          newBtn.addEventListener("click", function() {elditable_text(newBtn.style.borderColor)} );
+          newBtn.addEventListener("click", function() {display_label()});
+          document.querySelector('#button-container').appendChild(newBtn);
+          
+          }catch(error){
+            
+            alert("error occured")
+          }
+          console.log(newBtn)
+          console.log(newBtn.innerText)
+          for (const [key, value] of Object.entries(ner_text)) {
+                console.log(key, value);
+                if (value.length != 0) {
+                  value.forEach((list_details) => {
+                  for (const [label_name, label_value] of Object.entries(list_details)) { 
+                      if (list_of_labels[label] == label_name &&  text.includes(label_value)){
+                          console.log("test_label",list_details[list_of_labels[label]])
+                          if (text.indexOf(list_details[list_of_labels[label]]) >= 0){
+                              word_postion(text,list_details[list_of_labels[label]],obj)
+                          }
+                          text = colorWord(text,list_details[list_of_labels[label]],newBtn.style.borderColor);
+                      }else if(label_name =="ATTRIBUTE" && label_value.length!=0){
+                          console.log("check_inside",list_details[label_name])
+                        for(let attribute_lab = 0; attribute_lab < list_details[label_name].length; attribute_lab++){
+  
+                          for (const [att_key, att_value] of Object.entries(list_details[label_name][attribute_lab])) {
+                              console.log(att_key)
+                              if (att_key == list_of_labels[label] && text.includes(att_value)){
+                                  console.log("inside")
+                                  word_postion(text,att_value,obj)
+                                  text = colorWord(text,att_value,newBtn.style.borderColor);
+                                  console.log("fie",list_annotation)
+                              }
+                          }
+                        }
+                      } else {
+                          text = text
+                      }
+                  }
+              }); 
+              }  
+          }      
+        }
+        display_label()
+        text_anvil.innerHTML = text; 
+        //let submit_but = document.createElement("button");
+        var submit = document.getElementById("sub_button");
+        //submit.onclick = function(){final_form(text,patient_id)};
+        var delete_button = document.getElementById("delete_button");
+        //document.querySelector('#button-container').appendChild(delete_button);
+        delete_button.addEventListener("click", function(){delete_label(list_of_labels)});
+        let length = text.length;
+        console.log(length)
+        //submit_but.innerText = "submit";
+        //submit_but.onclick = function(){final_form(text)};
+      }catch(err) {
+       console.log(err)
+    alert("error")
+  } 
+  }}catch(err) {
+       console.log(err)
+  }
+  get_text("Scientists' research has revealed that viruses are by far the most abundant life forms on Earth. There are a million times more viruses on the planet than stars in the universe. Viruses also harbor the majority of genetic diversity on Earth. Scientists are finding evidence of viruses as a planetary force, influencing the global climate and geochemical cycles. They have also profoundly shaped the evolution of their hosts. The human genome, for example, contains 100,000 segments of virus DNA.",{"annotation":[{"label1":"virus"}]},["label1","label2","label_3","label_4"],"2")
+      </script>
+      
+      </html>
